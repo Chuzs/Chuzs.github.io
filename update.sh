@@ -3,3 +3,4 @@ unzip /storage/internal/*dist.zip -d /home/chuzs/Github/Chuzs.github.io/checkDat
 git add .
 git commit -m "update checkData"
 git push
+rm /storage/internal/*dist.zip -r
