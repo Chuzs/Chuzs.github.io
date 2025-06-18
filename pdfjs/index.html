@@ -1,0 +1,158 @@
+<html>
+  <head>
+    <title>pdf.js缩放</title>
+    <meta http-equiv="content-type" content="text/html;charset=utf-8" />
+  </head>
+  <h1>pdf展示</h1>
+  <div>
+    <button id="prev">Previous</button>
+    <button id="next">Next</button>
+    <button id="enlarge">放大</button>
+    <button id="letting">缩小</button>
+    <button id="leftRotate">左旋转90°</button>
+    <button id="rightRotate">右旋转90°</button>
+    &nbsp; &nbsp;
+    <span
+      >Page: <span id="page_num"></span> / <span id="page_count"></span
+    ></span>
+  </div>
+  <canvas id="the-canvas"></canvas>
+  <script src="./js/pdf.js"></script>
+  <script src="./js/pdf.worker.js"></script>
+  <script>
+    var pdfDoc = null,
+      pageNum = 1,
+      pageRendering = false,
+      pageNumPending = null,
+      scale = 0.8, //放大系数
+      rotate = 0,
+      canvas = document.getElementById("the-canvas"),
+      ctx = canvas.getContext("2d");
+
+  
+    function renderPage(num, rotate) {
+      console.log(num, rotate, "====");
+      pageRendering = true;
+      // Using promise to fetch the page
+      pdfDoc.getPage(num).then(function (page) {
+        var viewport = page.getViewport(scale, rotate);
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+
+        // Render PDF page into canvas context
+        var renderContext = {
+          canvasContext: ctx,
+          viewport: viewport,
+        };
+        var renderTask = page.render(renderContext);
+
+        // Wait for rendering to finish
+        renderTask.promise.then(function () {
+          pageRendering = false;
+          if (pageNumPending !== null) {
+            // New page rendering is pending
+            renderPage(pageNumPending);
+            pageNumPending = null;
+          }
+        });
+      });
+
+      // Update page counters
+      document.getElementById("page_num").textContent = num;
+    }
+
+ 
+    function queueRenderPage(num, rotate) {
+      if (pageRendering) {
+        pageNumPending = num;
+      } else {
+        renderPage(num, rotate);
+      }
+    }
+
+    function onPrevPage() {
+      if (pageNum <= 1) {
+        return;
+      }
+      pageNum--;
+      queueRenderPage(pageNum);
+    }
+    document.getElementById("prev").addEventListener("click", onPrevPage);
+
+    //放大
+    document.getElementById("enlarge").addEventListener("click", function () {
+      scale += 0.1;
+      queueRenderPage(pageNum);
+    });
+
+    //缩小
+    document.getElementById("letting").addEventListener("click", function () {
+      scale -= 0.1;
+      queueRenderPage(pageNum);
+    });
+    //旋转
+    document
+      .getElementById("rightRotate")
+      .addEventListener("click", function () {
+        rotate = (rotate + 90) % 360; // 逆时针旋转90度
+        console.log(rotate, "====");
+        queueRenderPage(pageNum, rotate);
+      });
+
+    document
+      .getElementById("leftRotate")
+      .addEventListener("click", function () {
+        rotate = (rotate - 90 + 360) % 360; // 顺时针旋转90度
+        console.log(rotate, "====");
+        queueRenderPage(pageNum, rotate);
+      });
+
+    /**
+     * Displays next page.
+     */
+    function onNextPage() {
+      if (pageNum >= pdfDoc.numPages) {
+        return;
+      }
+      pageNum++;
+      queueRenderPage(pageNum);
+    }
+    document.getElementById("next").addEventListener("click", onNextPage);
+
+    /**
+     * Asynchronously downloads PDF.
+     */
+    if (window.VoNRCall) {
+      window.VoNRCall.getResourceUrl(
+        "http://127.0.0.1:20311/pdfjs/pdf/1.pdf",
+        (res) => {
+          console.log(res);
+          pdfjsLib
+            .getDocument(res.url)
+            .then(function (pdfDoc_) {
+              pdfDoc = pdfDoc_;
+              document.getElementById("page_count").textContent =
+                pdfDoc.numPages;
+              // Initial/first page rendering
+              renderPage(pageNum);
+            });
+        }
+      );
+    } else {
+      fetch("https://172.27.0.41:5500/pdf/1.pdf")
+        .then((res) => res.blob())
+        .then((res) => {
+          pdfjsLib
+            .getDocument(URL.createObjectURL(res))
+            .then(function (pdfDoc_) {
+              pdfDoc = pdfDoc_;
+              document.getElementById("page_count").textContent =
+                pdfDoc.numPages;
+
+              // Initial/first page rendering
+              renderPage(pageNum);
+            });
+        });
+    }
+  </script>
+</html>
