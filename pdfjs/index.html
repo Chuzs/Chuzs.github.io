@@ -139,11 +139,8 @@
         }
       );
     } else {
-      fetch("https://172.27.0.41:5500/pdf/1.pdf")
-        .then((res) => res.blob())
-        .then((res) => {
-          pdfjsLib
-            .getDocument(URL.createObjectURL(res))
+       pdfjsLib
+            .getDocument('./pdf/1.pdf')
             .then(function (pdfDoc_) {
               pdfDoc = pdfDoc_;
               document.getElementById("page_count").textContent =
@@ -152,7 +149,20 @@
               // Initial/first page rendering
               renderPage(pageNum);
             });
-        });
+      // fetch("https://chuzs.github.io/pdfjs/pdf/1.pdf")
+      //   .then((res) => res.blob())
+      //   .then((res) => {
+      //     pdfjsLib
+      //       .getDocument(URL.createObjectURL(res))
+      //       .then(function (pdfDoc_) {
+      //         pdfDoc = pdfDoc_;
+      //         document.getElementById("page_count").textContent =
+      //           pdfDoc.numPages;
+
+      //         // Initial/first page rendering
+      //         renderPage(pageNum);
+      //       });
+      //   });
     }
   </script>
 </html>
